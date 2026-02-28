@@ -253,8 +253,6 @@ ui.on_message("delete_alarm", on_delete_alarm)
 ui.on_message("toggle_alarm", on_toggle_alarm)
 
 print("[Alarms] Starting alarm app with loop-based checker")
-print(f"[DEBUG] loop function defined: {loop}")
-print(f"[DEBUG] App.run about to be called...")
 
 # Start the application with our loop function
 App.run(user_loop=loop)
