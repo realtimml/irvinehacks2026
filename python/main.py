@@ -5,6 +5,7 @@
 from arduino.app_utils import *
 from arduino.app_bricks.web_ui import WebUI
 
+import threading
 import time
 from datetime import datetime
 
@@ -14,6 +15,7 @@ from datetime import datetime
 # Each alarm: { "id": int, "time": "HH:MM", "days": ["M","W","F"], "enabled": True }
 alarms = {}
 alarm_id_counter = 1
+alarm_lock = threading.Lock()
 
 # Map frontend day abbreviations to Python weekday indices (Monday=0 ... Sunday=6)
 DAY_TO_WEEKDAY = {
@@ -58,15 +60,16 @@ def convert_24h_to_12h(time_24h):
 
 def get_alarms_list():
     """Return all alarms as a list with 12h time format for the frontend."""
-    result = []
-    for alarm in alarms.values():
-        result.append({
-            "id": alarm["id"],
-            "time": convert_24h_to_12h(alarm["time"]),
-            "days": alarm["days"],
-            "enabled": alarm["enabled"],
-        })
-    return result
+    with alarm_lock:
+        result = []
+        for alarm in alarms.values():
+            result.append({
+                "id": alarm["id"],
+                "time": convert_24h_to_12h(alarm["time"]),
+                "days": alarm["days"],
+                "enabled": alarm["enabled"],
+            })
+        return result
 
 
 # ============================================
@@ -89,14 +92,15 @@ def on_create_alarm(client, data):
     # Convert 12h to 24h for internal storage
     time_24h = convert_12h_to_24h(time_str)
 
-    alarm_id = alarm_id_counter
-    alarm_id_counter += 1
-    alarms[alarm_id] = {
-        "id": alarm_id,
-        "time": time_24h,
-        "days": days,
-        "enabled": True,
-    }
+    with alarm_lock:
+        alarm_id = alarm_id_counter
+        alarm_id_counter += 1
+        alarms[alarm_id] = {
+            "id": alarm_id,
+            "time": time_24h,
+            "days": days,
+            "enabled": True,
+        }
 
     print(f"[Alarms] Created alarm #{alarm_id}: {time_24h} on {', '.join(days)}")
 
@@ -112,16 +116,17 @@ def on_update_alarm(client, data):
 
     alarm_id = int(alarm_id)
 
-    if alarm_id not in alarms:
-        print(f"[Alarms] Alarm #{alarm_id} not found for update")
-        return
+    with alarm_lock:
+        if alarm_id not in alarms:
+            print(f"[Alarms] Alarm #{alarm_id} not found for update")
+            return
 
-    if "time" in data:
-        alarms[alarm_id]["time"] = convert_12h_to_24h(data["time"])
-    if "days" in data:
-        alarms[alarm_id]["days"] = data["days"]
-    if "enabled" in data:
-        alarms[alarm_id]["enabled"] = data["enabled"]
+        if "time" in data:
+            alarms[alarm_id]["time"] = convert_12h_to_24h(data["time"])
+        if "days" in data:
+            alarms[alarm_id]["days"] = data["days"]
+        if "enabled" in data:
+            alarms[alarm_id]["enabled"] = data["enabled"]
 
     alarm = alarms[alarm_id]
     print(f"[Alarms] Updated alarm #{alarm_id}: {alarm['time']} on {', '.join(alarm['days'])} (enabled={alarm['enabled']})")
@@ -138,12 +143,13 @@ def on_delete_alarm(client, data):
 
     alarm_id = int(alarm_id)
 
-    if alarm_id in alarms:
-        removed = alarms.pop(alarm_id)
-        print(f"[Alarms] Deleted alarm #{alarm_id}: {removed['time']}")
-    else:
-        print(f"[Alarms] Alarm #{alarm_id} not found for deletion")
-        return
+    with alarm_lock:
+        if alarm_id in alarms:
+            removed = alarms.pop(alarm_id)
+            print(f"[Alarms] Deleted alarm #{alarm_id}: {removed['time']}")
+        else:
+            print(f"[Alarms] Alarm #{alarm_id} not found for deletion")
+            return
 
     # Broadcast updated list to all clients
     ui.send_message("alarm_changed", {"alarms": get_alarms_list()})
@@ -158,10 +164,11 @@ def on_toggle_alarm(client, data):
 
     alarm_id = int(alarm_id)
 
-    if alarm_id not in alarms:
-        print(f"[Alarms] Alarm #{alarm_id} not found for toggle")
-        return
-    alarms[alarm_id]["enabled"] = bool(enabled)
+    with alarm_lock:
+        if alarm_id not in alarms:
+            print(f"[Alarms] Alarm #{alarm_id} not found for toggle")
+            return
+        alarms[alarm_id]["enabled"] = bool(enabled)
 
     state_str = "enabled" if enabled else "disabled"
     print(f"[Alarms] Alarm #{alarm_id} {state_str}")
@@ -171,71 +178,66 @@ def on_toggle_alarm(client, data):
 
 
 # ============================================
-# Alarm Checker — runs inside the main loop
+# Alarm Checker Background Thread
 # ============================================
 # Tracks which alarms have already fired this minute to avoid duplicate triggers
 already_triggered = set()
-last_check_time = 0  # timestamp of last alarm check
 
 
-def loop():
-    """Called repeatedly by App.run(). Checks if any alarm should fire."""
-    global already_triggered, last_check_time
+def alarm_checker():
+    """Background thread that checks if any alarm should fire."""
+    global already_triggered
 
-    # Only check every ~15 seconds for efficiency
-    current_timestamp = time.time()
-    if current_timestamp - last_check_time < 15:
-        return
-    last_check_time = current_timestamp
+    while True:
+        now = datetime.now()
+        current_time = f"{now.hour:02d}:{now.minute:02d}"
+        current_weekday = now.weekday()  # 0=Monday ... 6=Sunday
+        current_day_abbr = WEEKDAY_TO_DAY.get(current_weekday, "")
 
-    now = datetime.now()
-    current_time = f"{now.hour:02d}:{now.minute:02d}"
-    current_weekday = now.weekday()  # 0=Monday ... 6=Sunday
-    current_day_abbr = WEEKDAY_TO_DAY.get(current_weekday, "")
-    minute_key = f"{now.hour:02d}:{now.minute:02d}"
+        # Reset triggered set when minute changes
+        minute_key = f"{now.hour:02d}:{now.minute:02d}"
 
-    # DEBUG: one line per check showing current vs stored (runs every ~15s)
-    alarm_summary = ", ".join([f"#{a['id']}={a['time']}|{'on' if a['enabled'] else 'off'}" for a in alarms.values()])
-    print(f"[CHECK] now={current_time} day={current_day_abbr} alarms=[{alarm_summary}]")
+        with alarm_lock:
+            for alarm_id, alarm in alarms.items():
+                if not alarm["enabled"]:
+                    continue
 
-    for alarm_id, alarm in alarms.items():
-        if not alarm["enabled"]:
-            continue
+                trigger_key = f"{alarm_id}_{minute_key}"
 
-        trigger_key = f"{alarm_id}_{minute_key}"
+                if trigger_key in already_triggered:
+                    continue
 
-        if trigger_key in already_triggered:
-            continue
+                # Check if time matches
+                if alarm["time"] != current_time:
+                    continue
 
-        # Check if time matches
-        if alarm["time"] != current_time:
-            continue
+                # Check if today is in the alarm's day list
+                # If no days selected, treat as a one-time alarm (fires any day)
+                if alarm["days"] and current_day_abbr not in alarm["days"]:
+                    continue
 
-        # Check if today is in the alarm's day list
-        # If no days selected, treat as a one-time alarm (fires any day)
-        if alarm["days"] and current_day_abbr not in alarm["days"]:
-            print(f"[CHECK] Alarm #{alarm_id} time matches but day '{current_day_abbr}' not in {alarm['days']}")
-            continue
+                # 🔔 ALARM TRIGGERED!
+                already_triggered.add(trigger_key)
+                time_12h = convert_24h_to_12h(alarm["time"])
+                days_str = ", ".join(alarm["days"]) if alarm["days"] else "Every day"
+                print(f"\n{'=' * 50}")
+                print(f"🔔 ALARM TRIGGERED: {time_12h} on {days_str}")
+                print(f"   Alarm ID: #{alarm_id}")
+                print(f"   Current time: {now.strftime('%I:%M %p')}")
+                print(f"{'=' * 50}\n")
 
-        # 🔔 ALARM TRIGGERED!
-        already_triggered.add(trigger_key)
-        time_12h = convert_24h_to_12h(alarm["time"])
-        days_str = ", ".join(alarm["days"]) if alarm["days"] else "Every day"
-        print(f"\n{'=' * 50}")
-        print(f"🔔 ALARM TRIGGERED: {time_12h} on {days_str}")
-        print(f"   Alarm ID: #{alarm_id}")
-        print(f"   Current time: {now.strftime('%I:%M %p')}")
-        print(f"{'=' * 50}\n")
+                # Notify frontend
+                ui.send_message("alarm_triggered", {
+                    "id": alarm_id,
+                    "time": time_12h,
+                    "days": alarm["days"],
+                })
 
-        # Notify frontend
-        ui.send_message("alarm_triggered", {
-            "id": alarm_id,
-            "time": time_12h,
-            "days": alarm["days"],
-        })
+        # Clean up old trigger keys (keep only current minute)
+        already_triggered = {k for k in already_triggered if k.endswith(f"_{minute_key}")}
 
-    # Clean up old trigger keys (keep only current minute)
-    already_triggered = {k for k in already_triggered if k.endswith(f"_{minute_key}")}
+        # Check every 15 seconds for responsiveness
+        time.sleep(15)
 
 
 # ============================================
@@ -252,8 +254,10 @@ ui.on_message("update_alarm", on_update_alarm)
 ui.on_message("delete_alarm", on_delete_alarm)
 ui.on_message("toggle_alarm", on_toggle_alarm)
 
-print("[Alarms] Starting alarm app with loop-based checker")
+# Start alarm checker in background thread
+checker_thread = threading.Thread(target=alarm_checker, daemon=True)
+checker_thread.start()
+print("[Alarms] Alarm checker thread started")
 
-# Start the application with our loop function
-App.run(user_loop=loop)
-
+# Start the application
+App.run()
