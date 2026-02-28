@@ -176,16 +176,28 @@ def on_toggle_alarm(client, data):
 # Tracks which alarms have already fired this minute to avoid duplicate triggers
 already_triggered = set()
 last_check_time = 0  # timestamp of last alarm check
+loop_call_count = 0  # DEBUG: track how many times loop() is called
 
 
 def loop():
     """Called repeatedly by App.run(). Checks if any alarm should fire."""
-    global already_triggered, last_check_time
+    global already_triggered, last_check_time, loop_call_count
+
+    loop_call_count += 1
+
+    # DEBUG [Hypothesis 1]: Is loop() being called at all?
+    # Print every 100th call to avoid flooding console
+    if loop_call_count <= 3 or loop_call_count % 100 == 0:
+        print(f"[DEBUG] loop() called (count={loop_call_count})")
 
     # Only check every ~15 seconds for efficiency
     current_timestamp = time.time()
-    if current_timestamp - last_check_time < 15:
+    elapsed = current_timestamp - last_check_time
+    if elapsed < 15:
         return
+
+    # DEBUG [Hypothesis 2]: Did we pass the throttle check?
+    print(f"[DEBUG] Throttle passed — {elapsed:.1f}s since last check")
     last_check_time = current_timestamp
 
     now = datetime.now()
@@ -193,6 +205,14 @@ def loop():
     current_weekday = now.weekday()  # 0=Monday ... 6=Sunday
     current_day_abbr = WEEKDAY_TO_DAY.get(current_weekday, "")
     minute_key = f"{now.hour:02d}:{now.minute:02d}"
+
+    # DEBUG [Hypothesis 3 & 4]: Show current state
+    print(f"[DEBUG] Current time={current_time}, day={current_day_abbr} (weekday={current_weekday})")
+    print(f"[DEBUG] Total alarms in store: {len(alarms)}")
+    for aid, a in alarms.items():
+        print(f"[DEBUG]   Alarm #{aid}: time={a['time']}, days={a['days']}, enabled={a['enabled']}")
+        if a['time'] == current_time:
+            print(f"[DEBUG]   ^^^ TIME MATCHES! ^^^")
 
     for alarm_id, alarm in alarms.items():
         if not alarm["enabled"]:
@@ -210,6 +230,7 @@ def loop():
         # Check if today is in the alarm's day list
         # If no days selected, treat as a one-time alarm (fires any day)
         if alarm["days"] and current_day_abbr not in alarm["days"]:
+            print(f"[DEBUG] Alarm #{alarm_id} time matches but day '{current_day_abbr}' not in {alarm['days']}")
             continue
 
         # 🔔 ALARM TRIGGERED!
@@ -248,6 +269,8 @@ ui.on_message("delete_alarm", on_delete_alarm)
 ui.on_message("toggle_alarm", on_toggle_alarm)
 
 print("[Alarms] Starting alarm app with loop-based checker")
+print(f"[DEBUG] loop function defined: {loop}")
+print(f"[DEBUG] App.run about to be called...")
 
 # Start the application with our loop function
 App.run(user_loop=loop)
