@@ -1,6 +1,10 @@
 // ============================================
 // Alarm Clock UI — JavaScript
+// Socket.IO integration with Python backend
 // ============================================
+
+// Socket.IO connection
+const socket = io();
 
 document.addEventListener('DOMContentLoaded', () => {
     initClock();
@@ -9,13 +13,86 @@ document.addEventListener('DOMContentLoaded', () => {
     initAlarmEdit();
     initNavTabs();
     initModal();
+    initSocket();
 });
 
 // ============================================
 // State
 // ============================================
-let alarmIdCounter = 4;
 let editingAlarmId = null; // null = adding new, otherwise the alarm ID being edited
+
+// ============================================
+// Socket.IO — Backend Communication
+// ============================================
+function initSocket() {
+    // Request initial alarm list from backend
+    socket.emit('message', { type: 'get_alarms', data: {} });
+
+    // Receive full alarm list (on load or after changes)
+    socket.on('alarms_list', (data) => {
+        renderAlarmList(data.alarms || []);
+    });
+
+    socket.on('alarm_changed', (data) => {
+        renderAlarmList(data.alarms || []);
+    });
+
+    // Alarm triggered notification
+    socket.on('alarm_triggered', (data) => {
+        console.log('🔔 Alarm triggered:', data);
+        highlightAlarm(data.id);
+    });
+}
+
+// ============================================
+// Render Alarm List from Backend Data
+// ============================================
+function renderAlarmList(alarms) {
+    const alarmList = document.getElementById('alarm-list');
+    if (!alarmList) return;
+
+    alarmList.innerHTML = '';
+
+    alarms.forEach(alarm => {
+        const isActive = alarm.enabled;
+        const daysStr = alarm.days.length > 0 ? alarm.days.join(', ') : 'No days';
+
+        const row = document.createElement('div');
+        row.className = `alarm-row ${isActive ? 'active' : 'inactive'}`;
+        row.dataset.alarmId = alarm.id;
+        row.innerHTML = `
+            <div class="alarm-info">
+                <p class="alarm-days">${daysStr}</p>
+                <p class="alarm-time">${alarm.time}</p>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" ${isActive ? 'checked' : ''}>
+                <span class="toggle-track">
+                    <span class="toggle-thumb"></span>
+                </span>
+            </label>
+        `;
+
+        alarmList.appendChild(row);
+    });
+}
+
+// ============================================
+// Highlight an alarm row when it triggers
+// ============================================
+function highlightAlarm(alarmId) {
+    const row = document.querySelector(`.alarm-row[data-alarm-id="${alarmId}"]`);
+    if (!row) return;
+
+    row.style.transition = 'box-shadow 0.3s ease, background 0.3s ease';
+    row.style.boxShadow = '0 0 20px rgba(255, 180, 0, 0.6)';
+    row.style.background = 'rgba(255, 180, 0, 0.15)';
+
+    setTimeout(() => {
+        row.style.boxShadow = '';
+        row.style.background = '';
+    }, 3000);
+}
 
 // ============================================
 // Live Clock
@@ -41,7 +118,7 @@ function initClock() {
 }
 
 // ============================================
-// Toggle Switches (delegated)
+// Toggle Switches (delegated) — sends to backend
 // ============================================
 function initToggles() {
     const alarmList = document.getElementById('alarm-list');
@@ -52,13 +129,23 @@ function initToggles() {
             const row = e.target.closest('.alarm-row');
             if (!row) return;
 
-            if (e.target.checked) {
+            const alarmId = row.dataset.alarmId;
+            const enabled = e.target.checked;
+
+            // Update visual state immediately for responsiveness
+            if (enabled) {
                 row.classList.remove('inactive');
                 row.classList.add('active');
             } else {
                 row.classList.remove('active');
                 row.classList.add('inactive');
             }
+
+            // Send toggle to backend
+            socket.emit('message', {
+                type: 'toggle_alarm',
+                data: { id: parseInt(alarmId), enabled: enabled }
+            });
         }
     });
 }
@@ -129,16 +216,13 @@ function initModal() {
         if (e.target === overlay) closeModal();
     });
 
-    // Delete
+    // Delete — sends to backend
     deleteBtn.addEventListener('click', () => {
         if (editingAlarmId !== null) {
-            const row = document.querySelector(`.alarm-row[data-alarm-id="${editingAlarmId}"]`);
-            if (row) {
-                row.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-                row.style.opacity = '0';
-                row.style.transform = 'translateX(-30px)';
-                setTimeout(() => row.remove(), 260);
-            }
+            socket.emit('message', {
+                type: 'delete_alarm',
+                data: { id: parseInt(editingAlarmId) }
+            });
             closeModal();
         }
     });
@@ -265,7 +349,7 @@ function adjustPicker(col, dir) {
 }
 
 // ============================================
-// Save Handler
+// Save Handler — sends to backend
 // ============================================
 function handleSave() {
     const hh = document.getElementById('picker-hours-val').textContent;
@@ -279,53 +363,25 @@ function handleSave() {
         selectedDays.push(b.dataset.day);
     });
 
-    const daysStr = selectedDays.length > 0 ? selectedDays.join(', ') : 'No days';
-
     if (editingAlarmId !== null) {
-        // --- Update existing alarm ---
-        const row = document.querySelector(`.alarm-row[data-alarm-id="${editingAlarmId}"]`);
-        if (row) {
-            row.querySelector('.alarm-time').textContent = timeStr;
-            row.querySelector('.alarm-days').textContent = daysStr;
-
-            // Flash to confirm edit
-            row.style.transition = 'background 0.3s ease';
-            row.style.background = 'rgba(0,0,0,0.06)';
-            setTimeout(() => { row.style.background = 'transparent'; }, 400);
-        }
-    } else {
-        // --- Create new alarm ---
-        const alarmList = document.getElementById('alarm-list');
-        if (!alarmList) return;
-
-        const newAlarm = document.createElement('div');
-        newAlarm.className = 'alarm-row active';
-        newAlarm.dataset.alarmId = alarmIdCounter++;
-        newAlarm.innerHTML = `
-            <div class="alarm-info">
-                <p class="alarm-days">${daysStr}</p>
-                <p class="alarm-time">${timeStr}</p>
-            </div>
-            <label class="toggle-switch">
-                <input type="checkbox" checked>
-                <span class="toggle-track">
-                    <span class="toggle-thumb"></span>
-                </span>
-            </label>
-        `;
-
-        alarmList.appendChild(newAlarm);
-
-        // Slide-in animation
-        newAlarm.style.opacity = '0';
-        newAlarm.style.transform = 'translateY(10px)';
-        newAlarm.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        requestAnimationFrame(() => {
-            newAlarm.style.opacity = '1';
-            newAlarm.style.transform = 'translateY(0)';
+        // --- Update existing alarm via backend ---
+        socket.emit('message', {
+            type: 'update_alarm',
+            data: {
+                id: parseInt(editingAlarmId),
+                time: timeStr,
+                days: selectedDays,
+            }
         });
-
-        newAlarm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        // --- Create new alarm via backend ---
+        socket.emit('message', {
+            type: 'create_alarm',
+            data: {
+                time: timeStr,
+                days: selectedDays,
+            }
+        });
     }
 
     closeModal();
