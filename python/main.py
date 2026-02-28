@@ -2,11 +2,22 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-from arduino.app_utils import *
-from arduino.app_bricks.web_ui import WebUI
+from arduino.app_utils import *  # pyright: ignore[reportMissingImports]
+from arduino.app_bricks.web_ui import WebUI  # pyright: ignore[reportMissingImports]
 
 import time
+import json
 from datetime import datetime
+
+# #region agent log
+_DBG_LOG = "/Users/darrenz/Documents/GitHub/irvinehacks2026/.cursor/debug-cb8229.log"
+def _dbg(msg, data=None, hyp=""):
+    try:
+        entry = {"sessionId":"cb8229","timestamp":int(time.time()*1000),"location":"main.py","message":msg,"data":data or {},"hypothesisId":hyp}
+        with open(_DBG_LOG, "a") as f:
+            f.write(json.dumps(entry)+"\n")
+    except: pass
+# #endregion
 
 # ============================================
 # Alarm Data Store (in-memory)
@@ -196,6 +207,10 @@ def loop():
 
     minute_key = f"{now.hour:02d}:{now.minute:02d}"
 
+    # #region agent log
+    _dbg("loop check", {"current_time": current_time, "current_day_abbr": current_day_abbr, "weekday_int": current_weekday, "num_alarms": len(alarms), "alarms": {str(k): {"time": v["time"], "days": v["days"], "enabled": v["enabled"]} for k,v in alarms.items()}}, "A,B")
+    # #endregion
+
     for alarm_id, alarm in alarms.items():
         if not alarm["enabled"]:
             continue
@@ -204,6 +219,10 @@ def loop():
 
         if trigger_key in already_triggered:
             continue
+
+        # #region agent log
+        _dbg("alarm compare", {"alarm_id": alarm_id, "alarm_time": alarm["time"], "current_time": current_time, "time_match": alarm["time"] == current_time, "alarm_days": alarm["days"], "current_day_abbr": current_day_abbr, "day_in_list": current_day_abbr in alarm["days"] if alarm["days"] else "no_days_set"}, "C,D")
+        # #endregion
 
         # Check if time matches
         if alarm["time"] != current_time:
@@ -223,6 +242,10 @@ def loop():
         print(f"   Alarm ID: #{alarm_id}")
         print(f"   Current time: {now.strftime('%I:%M %p')}")
         print(f"{'=' * 50}\n")
+
+        # #region agent log
+        _dbg("ALARM FIRED", {"alarm_id": alarm_id, "time_12h": time_12h}, "E")
+        # #endregion
 
         # Notify frontend
         ui.send_message("alarm_triggered", {
@@ -252,4 +275,4 @@ ui.on_message("toggle_alarm", on_toggle_alarm)
 print("[Alarms] Alarm clock app started")
 
 # Start the application with the alarm checker loop
-App.run(user_loop=loop)
+App.run(user_loop=loop)  # pyright: ignore[reportUndefinedVariable]
