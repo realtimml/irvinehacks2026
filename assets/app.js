@@ -4,7 +4,7 @@
 // ============================================
 
 // Socket.IO connection
-const socket = io();
+const socket = io(`http://${window.location.host}`);
 
 document.addEventListener('DOMContentLoaded', () => {
     initClock();
@@ -25,8 +25,11 @@ let editingAlarmId = null; // null = adding new, otherwise the alarm ID being ed
 // Socket.IO — Backend Communication
 // ============================================
 function initSocket() {
-    // Request initial alarm list from backend
-    socket.emit('message', { type: 'get_alarms', data: {} });
+    // Request initial alarm list when connected
+    socket.on('connect', () => {
+        console.log('Connected to backend');
+        socket.emit('get_alarms', {});
+    });
 
     // Receive full alarm list (on load or after changes)
     socket.on('alarms_list', (data) => {
@@ -41,6 +44,10 @@ function initSocket() {
     socket.on('alarm_triggered', (data) => {
         console.log('🔔 Alarm triggered:', data);
         highlightAlarm(data.id);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Disconnected from backend');
     });
 }
 
@@ -142,10 +149,7 @@ function initToggles() {
             }
 
             // Send toggle to backend
-            socket.emit('message', {
-                type: 'toggle_alarm',
-                data: { id: parseInt(alarmId), enabled: enabled }
-            });
+            socket.emit('toggle_alarm', { id: parseInt(alarmId), enabled: enabled });
         }
     });
 }
@@ -219,10 +223,7 @@ function initModal() {
     // Delete — sends to backend
     deleteBtn.addEventListener('click', () => {
         if (editingAlarmId !== null) {
-            socket.emit('message', {
-                type: 'delete_alarm',
-                data: { id: parseInt(editingAlarmId) }
-            });
+            socket.emit('delete_alarm', { id: parseInt(editingAlarmId) });
             closeModal();
         }
     });
@@ -365,22 +366,16 @@ function handleSave() {
 
     if (editingAlarmId !== null) {
         // --- Update existing alarm via backend ---
-        socket.emit('message', {
-            type: 'update_alarm',
-            data: {
-                id: parseInt(editingAlarmId),
-                time: timeStr,
-                days: selectedDays,
-            }
+        socket.emit('update_alarm', {
+            id: parseInt(editingAlarmId),
+            time: timeStr,
+            days: selectedDays,
         });
     } else {
         // --- Create new alarm via backend ---
-        socket.emit('message', {
-            type: 'create_alarm',
-            data: {
-                time: timeStr,
-                days: selectedDays,
-            }
+        socket.emit('create_alarm', {
+            time: timeStr,
+            days: selectedDays,
         });
     }
 
