@@ -1,44 +1,234 @@
-<!--
-SPDX-FileCopyrightText: Copyright (C) ARDUINO SRL (http://www.arduino.cc)
-
-SPDX-License-Identifier: MPL-2.0
--->
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linux Blink</title>
-    <link rel="icon" type="image/png" href="./img/favicon.png">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Alarm Clock</title>
+    <meta
+      name="description"
+      content="A sleek alarm clock app with customizable alarms and wake settings."
+    />
+    <link rel="icon" type="image/png" href="./img/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Michroma&family=Orbitron:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Background gradient -->
+      <div class="bg-gradient"></div>
 
-    <link rel="stylesheet" type="text/css" href="style.css">
-</head>
-<body>
-    <div>
-        <div class="header">
-            <h1 class="arduino-text">Linux Blink</h1>
-            <img class="arduino-logo" src="./img/RGB-Arduino-Logo_Color Inline Loop.svg" alt="Arduino Logo">
-        </div>
+      <!-- Main content -->
+      <main class="main-content">
+        <!-- Current time section -->
+        <section class="current-time-section">
+          <p class="current-time-label">It is currently</p>
+          <p class="current-time" id="current-time">09:07 AM</p>
+        </section>
 
+        <!-- Solid divider -->
+        <div class="divider divider-solid"></div>
 
-        <div class="container">
-            <!-- LED Button with integrated text -->
-            <div class="led-container">
-                <button id="led-button" class="led-off">
-                    <span id="led-text">LED IS OFF</span>
-                </button>
+        <!-- Alarm list -->
+        <section class="alarm-list" id="alarm-list">
+          <!-- Alarm 1: Active -->
+          <div class="alarm-row active" data-alarm-id="1">
+            <div class="alarm-info">
+              <p class="alarm-days">M, W, F</p>
+              <p class="alarm-time">08:00 AM</p>
             </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked />
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+            </label>
+          </div>
 
-            <!-- Instruction Text -->
-            <p class="instruction-text">Click to control board's LED 👆</p>
+          <!-- Alarm 2: Inactive -->
+          <div class="alarm-row inactive" data-alarm-id="2">
+            <div class="alarm-info">
+              <p class="alarm-days">T, Th</p>
+              <p class="alarm-time">10:00 AM</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" />
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+            </label>
+          </div>
 
-            <!-- Error message container -->
-            <div id="error-container" class="error-message" style="display: none;"></div>
+          <!-- Alarm 3: Inactive -->
+          <div class="alarm-row inactive" data-alarm-id="3">
+            <div class="alarm-info">
+              <p class="alarm-days">Sa, S</p>
+              <p class="alarm-time">12:00 PM</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" />
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Dashed divider -->
+        <div class="divider divider-dashed"></div>
+
+        <!-- Add New button -->
+        <button class="add-new-btn" id="add-new-btn">
+          <img
+            src="./e262b4db34c052d0d9274323c73ff1d35d22e5b5.svg"
+            alt=""
+            class="add-icon"
+            aria-hidden="true"
+          />
+          <span>Add New</span>
+        </button>
+      </main>
+
+      <!-- Bottom navigation bar -->
+      <nav class="bottom-nav">
+        <div class="nav-pill">
+          <button class="nav-tab active" data-tab="alarms">
+            <div class="nav-icon-wrapper">
+              <img
+                src="./1e99d101a6444b17af6899d5b353cff80ee7f28c.svg"
+                alt=""
+                class="nav-icon"
+                aria-hidden="true"
+              />
+            </div>
+            <span class="nav-label">Alarms</span>
+          </button>
+          <button class="nav-tab" data-tab="onwake">
+            <div class="nav-icon-wrapper">
+              <img
+                src="./5c164dd10608bbfa5ead5e950ee16c2818dbe9be.svg"
+                alt=""
+                class="nav-icon"
+                aria-hidden="true"
+              />
+            </div>
+            <span class="nav-label">On Wake</span>
+          </button>
+          <button class="nav-tab" data-tab="settings">
+            <div class="nav-icon-wrapper">
+              <img
+                src="./b0bcc3f13c2cf8795975658e9581e8b0f19c4217.svg"
+                alt=""
+                class="nav-icon"
+                aria-hidden="true"
+              />
+            </div>
+            <span class="nav-label">Settings</span>
+          </button>
         </div>
+      </nav>
     </div>
 
-    <script src="libs/socket.io.min.js"></script>
+    <!-- Alarm Editor Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal" id="alarm-modal">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-title">New Alarm</h2>
+        </div>
+
+        <!-- Time Picker -->
+        <div class="time-picker">
+          <div class="picker-column" id="picker-hours">
+            <button
+              class="picker-arrow picker-up"
+              data-dir="up"
+              data-col="hours"
+              aria-label="Hour up"
+            >
+              ▲
+            </button>
+            <div class="picker-value" id="picker-hours-val">08</div>
+            <button
+              class="picker-arrow picker-down"
+              data-dir="down"
+              data-col="hours"
+              aria-label="Hour down"
+            >
+              ▼
+            </button>
+          </div>
+          <div class="picker-separator">:</div>
+          <div class="picker-column" id="picker-minutes">
+            <button
+              class="picker-arrow picker-up"
+              data-dir="up"
+              data-col="minutes"
+              aria-label="Minute up"
+            >
+              ▲
+            </button>
+            <div class="picker-value" id="picker-minutes-val">00</div>
+            <button
+              class="picker-arrow picker-down"
+              data-dir="down"
+              data-col="minutes"
+              aria-label="Minute down"
+            >
+              ▼
+            </button>
+          </div>
+          <div class="picker-column picker-column-ampm" id="picker-ampm">
+            <button
+              class="picker-arrow picker-up"
+              data-dir="up"
+              data-col="ampm"
+              aria-label="AM/PM up"
+            >
+              ▲
+            </button>
+            <div class="picker-value" id="picker-ampm-val">AM</div>
+            <button
+              class="picker-arrow picker-down"
+              data-dir="down"
+              data-col="ampm"
+              aria-label="AM/PM down"
+            >
+              ▼
+            </button>
+          </div>
+        </div>
+
+        <!-- Day Picker -->
+        <div class="day-picker">
+          <button class="day-btn" data-day="M">M</button>
+          <button class="day-btn" data-day="T">T</button>
+          <button class="day-btn" data-day="W">W</button>
+          <button class="day-btn" data-day="Th">Th</button>
+          <button class="day-btn" data-day="F">F</button>
+          <button class="day-btn" data-day="Sa">Sa</button>
+          <button class="day-btn" data-day="S">S</button>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" id="modal-cancel">
+            Cancel
+          </button>
+          <button class="modal-btn modal-btn-delete" id="modal-delete">
+            Delete
+          </button>
+          <button class="modal-btn modal-btn-save" id="modal-save">Save</button>
+        </div>
+      </div>
+    </div>
+
     <script src="app.js"></script>
-</body>
+  </body>
 </html>

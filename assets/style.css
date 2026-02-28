@@ -1,135 +1,542 @@
-/*
- * SPDX-FileCopyrightText: Copyright (C) ARDUINO SRL (http://www.arduino.cc)
- *
- * SPDX-License-Identifier: MPL-2.0
- */
+/* ============================================
+   Alarm Clock UI — Styles
+   ============================================ */
 
-@import url("fonts/roboto-mono.css");
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-/*
- * This CSS is used to center the various elements on the screen
- */
-* {
-    margin: 0;
-    padding: 0;
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-    background-color: #ECF1F1;
-    color: #2C353A;
-    padding: 24px 40px;
+  font-family: "Michroma", sans-serif;
+  color: #000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
+/* --- App Container --- */
+.app-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  overflow: hidden;
 }
 
-.arduino-text {
-    color: #008184;
-    font-family: "Roboto Mono", monospace;
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0;
-    font-style: normal;
-    line-height: 170%;
-    letter-spacing: 0.28px;
+/* --- Background Gradient --- */
+.bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #b8cff5 0%,
+    #c5d6f3 15%,
+    #d4e0f2 30%,
+    #e0e8f0 45%,
+    #e8ecee 55%,
+    #eceee8 65%,
+    #f0f0e4 75%,
+    #f3f2e0 85%,
+    #f5f3dc 100%
+  );
+  z-index: 0;
 }
 
-.arduino-logo {
-    height: 24px;
-    width: auto;
+/* --- Main Content --- */
+.main-content {
+  position: relative;
+  z-index: 1;
+  padding: 60px 26px 120px;
+  height: 100%;
+  overflow-y: auto;
 }
 
-.container {
-    text-align: center;
+/* --- Current Time Section --- */
+.current-time-section {
+  margin-bottom: 12px;
 }
 
-/*
- * LED Button styling
- */
-.led-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 32px;
-    padding-top: 40px;
+.current-time-label {
+  font-family: "Michroma", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  color: #000;
+  margin-bottom: 4px;
+  line-height: 1.4;
 }
 
-#led-button {
-    width: 128px;
-    height: 128px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: inherit;
-    font-weight: 600;
-    font-size: 14px;
-    text-align: center;
-    line-height: 1.2;
-    outline: none;
-    position: relative;
-    border: 2px solid #C9D2D2;
+.current-time {
+  font-family: "Orbitron", sans-serif;
+  font-size: 64px;
+  font-weight: 500;
+  color: #000;
+  line-height: 1;
+  letter-spacing: 1px;
 }
 
-#led-button.led-off {
-    background: #DAE3E3;
-    color: #2C353A;
-    border-color: #C9D2D2;
+/* --- Dividers --- */
+.divider {
+  width: 100%;
+  margin: 16px 0;
 }
 
-#led-button.led-on {
-    background: #008184;
-    color: #ffffff;
-    box-shadow: 0 0 20px #008184, 0 0 40px #008184, 0 0 60px #008184;
-    border-color: #008184;
+.divider-solid {
+  height: 2px;
+  background: #000;
 }
 
-#led-button:hover {
-    transform: scale(1.05);
+.divider-dashed {
+  height: 0;
+  border: none;
+  border-top: 2px dashed rgba(0, 0, 0, 0.5);
 }
 
-#led-button:active {
-    transform: scale(0.95);
+/* --- Alarm List --- */
+.alarm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
 }
 
-.instruction-text {
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 160%;
-    letter-spacing: 0.12px;
-    color: #2C353A;
+.alarm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.error-message {
-    margin-top: 20px;
-    padding: 10px;
-    border-radius: 5px;
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+.alarm-row.inactive .alarm-days,
+.alarm-row.inactive .alarm-time {
+  color: rgba(0, 0, 0, 0.5);
 }
 
-/*
- * Responsive design
- */
-@media (max-width: 768px) {
-    body {
-        padding: 12px 20px;
-    }
+.alarm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
 
-    .arduino-text {
-        font-size: 14px;
-    }
+.alarm-days {
+  font-family: "Michroma", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #000;
+  line-height: 1.3;
+}
 
-    .arduino-logo {
-        height: 16px;
-        width: auto;
-    }
+.alarm-time {
+  font-family: "Orbitron", sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  color: #000;
+  line-height: 1;
+}
+
+/* --- Toggle Switch --- */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-track {
+  display: flex;
+  align-items: center;
+  width: 77px;
+  height: 32px;
+  border: 3px solid rgba(0, 0, 0, 0.5);
+  background: transparent;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.toggle-thumb {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: rgba(0, 0, 0, 0.5);
+  transition: all 0.25s ease;
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Active/checked state */
+.toggle-switch input:checked + .toggle-track {
+  border-color: rgba(0, 0, 0, 0.5);
+}
+
+.toggle-switch input:checked + .toggle-track .toggle-thumb {
+  background: #000;
+  left: calc(100% - 25px);
+}
+
+/* --- Add New Button --- */
+.add-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Orbitron", sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.2s ease;
+}
+
+.add-new-btn:hover {
+  opacity: 0.7;
+}
+
+.add-new-btn:active {
+  opacity: 0.5;
+}
+
+.add-icon {
+  width: 31px;
+  height: 31px;
+}
+
+/* --- Bottom Navigation --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  max-width: 430px;
+  width: 100%;
+  padding: 0 24px;
+}
+
+.nav-pill {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: rgba(0, 0, 0, 0);
+  border-radius: 30px;
+  height: 75px;
+  padding: 0 6px;
+  gap: 0;
+  width: 240px;
+}
+
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 30px;
+  transition: background 0.25s ease;
+  min-width: 74px;
+  height: 66px;
+}
+
+.nav-tab.active {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.nav-icon-wrapper {
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.nav-label {
+  font-family: "Michroma", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: #000;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* --- Responsive --- */
+@media (max-width: 430px) {
+  .current-time {
+    font-size: clamp(42px, 14vw, 64px);
+  }
+
+  .alarm-time {
+    font-size: clamp(24px, 8vw, 32px);
+  }
+}
+
+@media (min-width: 431px) {
+  .app-container {
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* ============================================
+   Modal — Alarm Editor
+   ============================================ */
+
+/* --- Overlay --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- Modal Panel --- */
+.modal {
+  width: 100%;
+  max-width: 430px;
+  background: linear-gradient(
+    180deg,
+    #dee8f2 0%,
+    #e8ecee 30%,
+    #f0f0e4 70%,
+    #f5f3dc 100%
+  );
+  border-radius: 24px 24px 0 0;
+  padding: 28px 26px 40px;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-overlay.open .modal {
+  transform: translateY(0);
+}
+
+/* --- Modal Header --- */
+.modal-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.modal-title {
+  font-family: "Michroma", sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: #000;
+}
+
+/* --- Time Picker --- */
+.time-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 32px;
+}
+
+.picker-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.picker-column-ampm {
+  min-width: 64px;
+  margin-left: 10px;
+}
+
+.picker-arrow {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: rgba(0, 0, 0, 0.35);
+  padding: 6px 14px;
+  transition:
+    color 0.2s ease,
+    transform 0.15s ease;
+  user-select: none;
+  line-height: 1;
+}
+
+.picker-arrow:hover {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.picker-arrow:active {
+  transform: scale(0.85);
+  color: #000;
+}
+
+.picker-value {
+  font-family: "Orbitron", sans-serif;
+  font-size: 48px;
+  font-weight: 500;
+  color: #000;
+  line-height: 1;
+  text-align: center;
+  min-width: 80px;
+  padding: 4px 0;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+  border-top: 2px solid rgba(0, 0, 0, 0.15);
+  user-select: none;
+}
+
+.picker-column-ampm .picker-value {
+  font-size: 28px;
+  min-width: 54px;
+}
+
+.picker-separator {
+  font-family: "Orbitron", sans-serif;
+  font-size: 48px;
+  font-weight: 500;
+  color: #000;
+  line-height: 1;
+  padding-bottom: 2px;
+  user-select: none;
+}
+
+/* --- Day Picker --- */
+.day-picker {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.day-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  background: transparent;
+  font-family: "Michroma", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.day-btn:hover {
+  border-color: rgba(0, 0, 0, 0.6);
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.day-btn.selected {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+}
+
+.day-btn.selected:hover {
+  background: rgba(0, 0, 0, 0.65);
+  border-color: rgba(0, 0, 0, 0.65);
+}
+
+/* --- Modal Actions --- */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 14px 8px;
+  border: none;
+  border-radius: 12px;
+  font-family: "Michroma", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.modal-btn-cancel {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.modal-btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.modal-btn-delete {
+  background: rgba(180, 40, 40, 0.12);
+  color: rgba(180, 40, 40, 0.85);
+}
+
+.modal-btn-delete:hover {
+  background: rgba(180, 40, 40, 0.22);
+}
+
+.modal-btn-delete.hidden {
+  display: none;
+}
+
+.modal-btn-save {
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+}
+
+.modal-btn-save:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.modal-btn:active {
+  transform: scale(0.97);
 }
