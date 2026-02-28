@@ -5,7 +5,7 @@ from typing import Generator
 model = YOLO('python/yolo26n-pose.pt')  # Load a pretrained YOLOv8 model (you can choose different versions)
 
 # 1. Initialize the webcam (0 is usually the default built-in camera)
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
     print("Error: Could not open webcam.")
