@@ -1,5 +1,6 @@
 profiles:
   default:
+    fqbn: 
     platforms:
       - platform: arduino:zephyr
     libraries:
@@ -9,4 +10,6 @@ profiles:
       - dependency: ArxTypeTraits (0.3.2)
       - dependency: DebugLog (0.8.4)
       - dependency: MsgPack (0.4.2)
+      - TM1637 (1.2.0)
+
 default_profile: default
