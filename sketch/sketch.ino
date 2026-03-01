@@ -7,7 +7,7 @@
 
 const int CLK = 6;
 const int DIO = 7;
-const bool leading_zero = true;
+const bool leading_zero = false;
 
 TM1637Display display(CLK, DIO);
 
