@@ -201,7 +201,7 @@ def loop():
 
      # Update clock time -> the arduino bridge to cpp
     hr_str, min_str = current_time.split(":")
-    clock_time = int(hr_str + min_str)
+    clock_time = int(str(int(hr_str) % 12 or 12) + min_str)
 
     # call function from mcu
     Bridge.call("set_clock_time", clock_time)
