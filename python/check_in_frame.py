@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 from typing import Generator
 
-model = YOLO('python/yolo26n-pose.pt')  # Load a pretrained YOLOv8 model (you can choose different versions)
+model = YOLO('python/yolo26n-pose.onnx')  # Load a pretrained YOLOv8 model (you can choose different versions)
 
 # 1. Initialize the webcam (0 is usually the default built-in camera)
 cap = cv2.VideoCapture(0)
@@ -18,7 +18,7 @@ print("Press 'q' to quit.")
 def check_in_frame(capture, model) -> Generator[bool, None, None]:
     while True:
         ret, frame = capture.read()
-        frame = cv2.resize(frame, (512, 288))  # Resize frame for faster processing
+        # frame = cv2.resize(frame, (512, 288))  # Resize frame for faster processing
 
         if not ret:
             print("Error: Can't receive frame.")
