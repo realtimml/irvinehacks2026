@@ -339,9 +339,9 @@ function adjustPicker(col, dir) {
     } else if (col === 'minutes') {
         const el = document.getElementById('picker-minutes-val');
         let val = parseInt(el.textContent, 10);
-        val = dir === 'up' ? val + 5 : val - 5;
+        val = dir === 'up' ? val + 1 : val - 1;
         if (val >= 60) val = 0;
-        if (val < 0) val = 55;
+        if (val < 0) val = 59;
         el.textContent = String(val).padStart(2, '0');
     } else if (col === 'ampm') {
         const el = document.getElementById('picker-ampm-val');

@@ -15,16 +15,16 @@ def check_in_frame(capture, model) -> Generator[bool, None, None]:
         # annotated_frame = results[0].plot()
         # cv2.imshow('Webcam Feed', annotated_frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #    break
 
         yield len(results[0].boxes) > 0  # Yield True if at least one person is detected, otherwise False
 
 def camera_loop():
-    model = YOLO('models/yolo26n-pose.onnx')  # Load a pretrained YOLOv8 model (you can choose different versions)
+    model = YOLO('assets/models/yolo26n-pose.onnx')  # Load a pretrained YOLOv8 model (you can choose different versions)
 
     # 1. Initialize the webcam (0 is usually the default built-in camera)
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
 
 
     if not cap.isOpened():
@@ -40,4 +40,4 @@ def camera_loop():
             break
     
     cap.release()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
