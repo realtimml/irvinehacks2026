@@ -6,7 +6,9 @@ from arduino.app_utils import *  # pyright: ignore[reportMissingImports]
 from arduino.app_bricks.web_ui import WebUI  # pyright: ignore[reportMissingImports]
 
 import time
+import threading
 from datetime import datetime, timezone, timedelta
+from start_alarm import start_alarm
 
 # PST is UTC-8. Change this offset if you move to a different timezone.
 # For PDT (daylight saving), use timedelta(hours=-7).
@@ -186,8 +188,13 @@ last_check_time = 0
 CHECK_INTERVAL = 15  # seconds between alarm checks
 
 
+def dummy_function():
+    print("[Alarms] Timer expired — dummy function triggered!", flush=True)
+
+
 def loop():
     """Called repeatedly by App.run() — Arduino-style loop function."""
+    Bridge.call("load_servo")
     global already_triggered, last_check_time
 
     # Only check alarms every CHECK_INTERVAL seconds (non-blocking, like millis())
@@ -250,10 +257,12 @@ def loop():
             "days": alarm["days"],
         })
 
+        timer = threading.Timer(60, Bridge.call("fire_servo"))
+        timer.start()
         try:
-            App.call("set_led_state", True)  # pyright: ignore[reportUndefinedVariable]
-        except Exception as e:
-            print(f"Failed to communicate with Arduino Sketch: {e}", flush=True)
+            start_alarm()
+        finally:
+            timer.cancel()
 
     # Clean up old trigger keys (keep only current minute)
     already_triggered = {k for k in already_triggered if k.endswith(f"_{minute_key}")}

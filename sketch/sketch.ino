@@ -33,6 +33,8 @@ void setup() {
 
     Bridge.begin();
     Bridge.provide("set_clock_time", set_clock_time);
+    Bridge.provide("load_servo", load_servo);
+    Bridge.provide("fire_servo", fire_servo);
 }
 
 void loop() {}
