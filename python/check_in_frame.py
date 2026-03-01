@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 from typing import Generator
 
-model = YOLO('python/yolo26n-pose.onnx')  # Load a pretrained YOLOv8 model (you can choose different versions)
+model = YOLO('models/yolo26n-pose.onnx')  # Load a pretrained YOLOv8 model (you can choose different versions)
 
 # 1. Initialize the webcam (0 is usually the default built-in camera)
 cap = cv2.VideoCapture(0)
