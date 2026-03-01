@@ -25,8 +25,8 @@ def check_in_frame(capture, model) -> Generator[bool, None, None]:
             return False
 
         results = model(frame)
-        annotated_frame = results[0].plot()
-        cv2.imshow('Webcam Feed', annotated_frame)
+        # annotated_frame = results[0].plot()
+        # cv2.imshow('Webcam Feed', annotated_frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
