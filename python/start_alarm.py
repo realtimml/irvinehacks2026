@@ -14,3 +14,4 @@ def start_alarm():
     camera_loop()
     alarm_sound.terminate()
     print("Alarm loop ended...")
+    return True
