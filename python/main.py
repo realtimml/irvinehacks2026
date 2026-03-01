@@ -6,7 +6,11 @@ from arduino.app_utils import *  # pyright: ignore[reportMissingImports]
 from arduino.app_bricks.web_ui import WebUI  # pyright: ignore[reportMissingImports]
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# PST is UTC-8. Change this offset if you move to a different timezone.
+# For PDT (daylight saving), use timedelta(hours=-7).
+PST = timezone(timedelta(hours=-8))
 
 # ============================================
 # Alarm Data Store (in-memory)
@@ -33,7 +37,10 @@ def convert_12h_to_24h(time_12h):
     """Convert '08:00 AM' format to '08:00' (24h) format."""
     parts = time_12h.strip().split(" ")
     if len(parts) != 2:
-        return time_12h  # Already 24h or malformed
+        if ":" in time_12h:
+            h, m = time_12h.split(":")
+            return f"{int(h):02d}:{m}"
+        return time_12h  # Malformed
     time_part, ampm = parts
     hh, mm = time_part.split(":")
     hh = int(hh)
@@ -189,8 +196,9 @@ def loop():
         return
     last_check_time = current_time_s
 
-    now = datetime.now()
+    now = datetime.now(PST)
     current_time = f"{now.hour:02d}:{now.minute:02d}"
+    print(f"Board time (PST): {current_time}", flush=True)
     current_weekday = now.weekday()  # 0=Monday ... 6=Sunday
     current_day_abbr = WEEKDAY_TO_DAY.get(current_weekday, "")
 
@@ -218,11 +226,11 @@ def loop():
         already_triggered.add(trigger_key)
         time_12h = convert_24h_to_12h(alarm["time"])
         days_str = ", ".join(alarm["days"]) if alarm["days"] else "Every day"
-        print(f"\n{'=' * 50}")
-        print(f"🔔 ALARM TRIGGERED: {time_12h} on {days_str}")
-        print(f"   Alarm ID: #{alarm_id}")
-        print(f"   Current time: {now.strftime('%I:%M %p')}")
-        print(f"{'=' * 50}\n")
+        print(f"\n{'=' * 50}", flush=True)
+        print(f"🔔 ALARM TRIGGERED: {time_12h} on {days_str}", flush=True)
+        print(f"   Alarm ID: #{alarm_id}", flush=True)
+        print(f"   Board's Current time: {now.strftime('%I:%M %p')}", flush=True)
+        print(f"{'=' * 50}\n", flush=True)
 
         # Notify frontend
         ui.send_message("alarm_triggered", {
@@ -230,6 +238,11 @@ def loop():
             "time": time_12h,
             "days": alarm["days"],
         })
+
+        try:
+            App.call("set_led_state", True)  # pyright: ignore[reportUndefinedVariable]
+        except Exception as e:
+            print(f"Failed to communicate with Arduino Sketch: {e}", flush=True)
 
     # Clean up old trigger keys (keep only current minute)
     already_triggered = {k for k in already_triggered if k.endswith(f"_{minute_key}")}
@@ -249,7 +262,8 @@ ui.on_message("update_alarm", on_update_alarm)
 ui.on_message("delete_alarm", on_delete_alarm)
 ui.on_message("toggle_alarm", on_toggle_alarm)
 
-print("[Alarms] Alarm clock app started")
+print("[Alarms] Alarm clock app started", flush=True)
+print(f"[Alarms] Board UTC time: {datetime.now(timezone.utc).strftime('%H:%M')} | PST time: {datetime.now(PST).strftime('%H:%M')}", flush=True)
 
 # Start the application with the alarm checker loop
 App.run(user_loop=loop)  # pyright: ignore[reportUndefinedVariable]
