@@ -1,10 +1,10 @@
-from playsound3 import playsound
+# from playsound3 import playsound
+import os
 from check_in_frame import camera_loop
 from multiprocessing import Process
 
 def sound_loop(sound_file='sounds/alarm.m4a'):
-    while True:
-        playsound(sound_file)  # Replace with the path to your alarm sound file
+    os.system(f"mpg123 {sound_file}")
 
 
 def start_alarm():
