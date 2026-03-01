@@ -190,6 +190,7 @@ CHECK_INTERVAL = 15  # seconds between alarm checks
 
 def dummy_function():
     print("[Alarms] Timer expired — dummy function triggered!", flush=True)
+    # Bridge.call("fire_servo")
 
 
 def loop():
@@ -257,7 +258,7 @@ def loop():
             "days": alarm["days"],
         })
 
-        timer = threading.Timer(60, Bridge.call("fire_servo"))
+        timer = threading.Timer(60, dummy_function)
         timer.start()
         try:
             start_alarm()
