@@ -9,6 +9,8 @@ const int CLK = 6;
 const int DIO = 7;
 const bool leading_zero = true;
 
+TM1637Display display(CLK, DIO);
+
 
 void setup() {
     // pinMode(LED_BUILTIN, OUTPUT);
@@ -17,13 +19,16 @@ void setup() {
 
     // Bridge.begin();
     // Bridge.provide("set_led_state", set_led_state);
-    TM1637Display display(CLK, DIO);
+    
   
     display.clear();
 
     display.setBrightness(7);
 
-    display.showNumberDecEx(123, 0x40, leading_zero);
+    // display.showNumberDecEx(123, 0x40, leading_zero);
+
+    Bridge.begin();
+    Bridge.provide("set_clock_time", set_clock_time);
 }
 
 void loop() {}
@@ -31,5 +36,11 @@ void loop() {}
 void set_led_state(bool state) {
     // LOW state means LED is ON
     digitalWrite(LED_BUILTIN, state ? LOW : HIGH);
+}
+
+void set_clock_time(int time) {
+
+    
+    display.showNumberDecEx(time, 0x40, leading_zero);
 }
 

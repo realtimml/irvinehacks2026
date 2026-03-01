@@ -198,9 +198,20 @@ def loop():
 
     now = datetime.now(PST)
     current_time = f"{now.hour:02d}:{now.minute:02d}"
+
+     # Update clock time -> the arduino bridge to cpp
+    hr_str, min_str = current_time.split(":")
+    clock_time = int(hr_str + min_str)
+
+    # call function from mcu
+    Bridge.call("set_clock_time", clock_time)
+    
+    
     print(f"Board time (PST): {current_time}", flush=True)
     current_weekday = now.weekday()  # 0=Monday ... 6=Sunday
     current_day_abbr = WEEKDAY_TO_DAY.get(current_weekday, "")
+
+   
 
     minute_key = f"{now.hour:02d}:{now.minute:02d}"
 
